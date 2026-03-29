@@ -16,7 +16,7 @@
 // CONFIGURAZIONE
 // ============================================================
 // Questo URL va sostituito dopo il deploy di Google Apps Script
-const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyFcd-7OhgzDP1_2bt7F7RsNwJfvRytuqCW5HuhOfCvKOMB54gIkuhrJqVO1ynoERd2/exec';
 
 const comuniDB = new ComuniDB();
 let dbReady = false;
@@ -359,7 +359,7 @@ async function handleSubmit(e) {
         const errors = Object.entries(validation)
             .filter(([, v]) => v.status === 'error')
             .map(([field, v]) => `${field}: ${v.detail}`);
-        
+
         const proceed = confirm(
             `⚠️ Ci sono errori di validazione:\n\n${errors.join('\n')}\n\nVuoi inviare comunque?`
         );
@@ -422,12 +422,12 @@ function showSuccessScreen(data) {
     const form = document.getElementById('registration-form');
     const success = document.getElementById('success-screen');
     const badge = document.getElementById('validation-badge');
-    
+
     if (form && success) {
         form.style.display = 'none';
         if (badge) badge.style.display = 'none';
         success.style.display = 'flex';
-        
+
         const nameEl = success.querySelector('.success-name');
         if (nameEl) nameEl.textContent = `${data.cognome} ${data.nome}`;
     }
@@ -436,22 +436,22 @@ function showSuccessScreen(data) {
 function resetForm() {
     const form = document.getElementById('registration-form');
     const success = document.getElementById('success-screen');
-    
+
     if (form && success) {
         form.style.display = 'block';
         success.style.display = 'none';
         form.reset();
-        
+
         // Ri-popola anno
         const annoField = document.getElementById('anno_iscrizione');
         if (annoField) annoField.value = new Date().getFullYear();
-        
+
         // Resetta validazione
         document.querySelectorAll('.field-group').forEach(g => {
             g.classList.remove('valid', 'warning', 'error');
         });
         document.querySelectorAll('.field-feedback').forEach(f => f.remove());
-        
+
         const badge = document.getElementById('validation-badge');
         if (badge) badge.style.display = 'none';
     }
@@ -467,7 +467,7 @@ function showToast(message, type = 'info') {
         container.id = 'toast-container';
         document.body.appendChild(container);
     }
-    
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
