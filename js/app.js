@@ -16,7 +16,7 @@
 // CONFIGURAZIONE
 // ============================================================
 // Questo URL va sostituito dopo il deploy di Google Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8C1HLysOmuIulE_A4gfi2GLacyWfrGxvGVb4lh28xT3BNEYU0crsEeuMkxLNnlxsy/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAVR1693co5hEWW9lQIRY2ZkIUeXE8OCOBet5M8EelAge-uFOdCAF0vCY5CH8rOm-g/exec';
 
 const comuniDB = new ComuniDB();
 let dbReady = false;
