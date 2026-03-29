@@ -16,7 +16,7 @@
 // CONFIGURAZIONE
 // ============================================================
 // Questo URL va sostituito dopo il deploy di Google Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyFcd-7OhgzDP1_2bt7F7RsNwJfvRytuqCW5HuhOfCvKOMB54gIkuhrJqVO1ynoERd2/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8C1HLysOmuIulE_A4gfi2GLacyWfrGxvGVb4lh28xT3BNEYU0crsEeuMkxLNnlxsy/exec';
 
 const comuniDB = new ComuniDB();
 let dbReady = false;
@@ -390,17 +390,9 @@ async function handleSubmit(e) {
             throw new Error('Apps Script URL non configurato. Segui le istruzioni nel README.');
         }
 
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+        // Usa form nascosto + iframe per evitare CORS/401
+        await submitViaForm(APPS_SCRIPT_URL, data);
 
-        // NOTA: mode 'no-cors' restituisce una opaque response (status 0).
-        // Non possiamo verificare errori server-side — questo è un limite noto
-        // delle chiamate cross-origin verso Google Apps Script da GitHub Pages.
-        // Il Code.gs registra comunque eventuali errori nei log dello script.
         showToast('✅ Registrazione inviata con successo!', 'success');
         showSuccessScreen(data);
 
@@ -480,6 +472,70 @@ function showToast(message, type = 'info') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+
+// ============================================================
+// SUBMIT VIA FORM (bypassa CORS/401)
+// ============================================================
+function submitViaForm(url, data) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Crea iframe nascosto
+            const iframeName = 'submit_iframe_' + Date.now();
+            const iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            // Crea form nascosto
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            form.target = iframeName;
+            form.style.display = 'none';
+
+            // Aggiungi tutti i campi come input hidden
+            Object.entries(data).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value || '';
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+
+            // Risolvi quando l'iframe ha caricato
+            iframe.onload = () => {
+                // Cleanup dopo un breve delay
+                setTimeout(() => {
+                    form.remove();
+                    iframe.remove();
+                }, 2000);
+                resolve();
+            };
+
+            iframe.onerror = () => {
+                form.remove();
+                iframe.remove();
+                reject(new Error('Errore di rete durante l\'invio'));
+            };
+
+            // Timeout di sicurezza (10 secondi)
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    form.remove();
+                    iframe.remove();
+                    resolve(); // Risolvi comunque — il submit è partito
+                }
+            }, 10000);
+
+            // Invia!
+            form.submit();
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
 
 // ============================================================

@@ -35,7 +35,14 @@ function doPost(e) {
     }
     props.setProperty('lastSubmission', String(now));
 
-    const data = JSON.parse(e.postData.contents);
+    // Accetta sia JSON che form-encoded
+    let data;
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch {
+      // Fallback: dati da form HTML (e.parameter)
+      data = e.parameter || {};
+    }
     
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
