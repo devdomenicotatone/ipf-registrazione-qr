@@ -23,6 +23,18 @@ const SHEET_NAME = 'ELENCO TESSERATI.csv';
  */
 function doPost(e) {
   try {
+    // Rate limiting basico (anti-spam): max 1 invio ogni 10 secondi
+    const props = PropertiesService.getScriptProperties();
+    const lastSub = parseInt(props.getProperty('lastSubmission') || '0');
+    const now = Date.now();
+    if (now - lastSub < 10000) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'Troppi invii ravvicinati. Riprova tra qualche secondo.'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    props.setProperty('lastSubmission', String(now));
+
     const data = JSON.parse(e.postData.contents);
     
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

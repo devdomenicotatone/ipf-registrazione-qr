@@ -2,6 +2,14 @@
  * IPF Auto-Registrazione — App Logic
  * ====================================
  * Gestione form, validazione real-time, submit a Google Apps Script.
+ * 
+ * Audit fix applicate:
+ * - B3: Sanitizzazione HTML autocomplete (XSS)
+ * - R3: Debounce condiviso per validazione CF
+ * - R4: Event delegation per suggestions (memory leak fix)
+ * - R5: Feedback visivo se DB comuni non si carica
+ * - U1: Toast container statico
+ * - S2: Anti-doppio-click sul submit
  */
 
 // ============================================================
@@ -13,6 +21,9 @@ const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 const comuniDB = new ComuniDB();
 let dbReady = false;
 
+// Debounce condiviso per la validazione CF (fix R3)
+const debouncedValidation = debounce(() => runValidation(), 400);
+
 // ============================================================
 // INIZIALIZZAZIONE
 // ============================================================
@@ -22,6 +33,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await comuniDB.load();
     dbReady = comuniDB.loaded;
     showLoadingState(false);
+
+    // Feedback se DB non caricato (fix R5)
+    if (!dbReady) {
+        showToast('⚠️ Database comuni non disponibile. La validazione avanzata è disattivata.', 'info');
+    }
 
     // Pre-compila anno iscrizione
     const annoField = document.getElementById('anno_iscrizione');
@@ -39,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupComuniAutocomplete('luogo_nascita', 'luogo_nascita_suggestions');
     setupComuniAutocomplete('comune_residenza', 'comune_residenza_suggestions');
 
-    console.log('✅ App inizializzata');
+    console.log('✅ App inizializzata' + (dbReady ? '' : ' (senza DB comuni)'));
 });
 
 // ============================================================
@@ -56,12 +72,12 @@ function showLoadingState(loading) {
 // VALIDAZIONE REAL-TIME
 // ============================================================
 function setupRealTimeValidation() {
-    // Campi che triggerano la validazione CF
+    // Campi che triggerano la validazione CF (usano debounce condiviso — fix R3)
     const cfRelatedFields = ['codice_fiscale', 'cognome', 'nome', 'data_nascita', 'luogo_nascita'];
     cfRelatedFields.forEach(fieldId => {
         const el = document.getElementById(fieldId);
         if (el) {
-            el.addEventListener('input', debounce(() => runValidation(), 500));
+            el.addEventListener('input', debouncedValidation);
             el.addEventListener('blur', () => runValidation());
         }
     });
@@ -88,7 +104,7 @@ function setupRealTimeValidation() {
         });
     }
 
-    // Telefono
+    // Telefono (con debounce proprio, non condiviso)
     const phoneEl = document.getElementById('cellulare');
     if (phoneEl) {
         phoneEl.addEventListener('input', debounce(() => {
@@ -111,21 +127,30 @@ function setupRealTimeValidation() {
 }
 
 function runValidation() {
-    if (!dbReady) return;
-
     const data = getFormData();
-    const validation = validateDataVsCf(data, comuniDB);
-    const overall = getOverallStatus(validation);
 
-    // Mostra risultati per ogni campo
-    Object.entries(validation).forEach(([field, result]) => {
-        if (result.status !== 'skip') {
-            showFieldValidation(field, result);
-        }
-    });
+    // Validazione telefono anche senza DB
+    if (data.cellulare) {
+        const phoneResult = validatePhone(data.cellulare);
+        showFieldValidation('cellulare', phoneResult);
+    }
 
-    // Aggiorna badge complessivo
-    updateOverallBadge(overall, validation);
+    // Validazione CF richiede DB o almeno un CF da controllare
+    const cf = (data.codice_fiscale || '').trim();
+    if (cf.length >= 16 || dbReady) {
+        const validation = validateDataVsCf(data, dbReady ? comuniDB : null);
+        const overall = getOverallStatus(validation);
+
+        // Mostra risultati per ogni campo
+        Object.entries(validation).forEach(([field, result]) => {
+            if (result.status !== 'skip') {
+                showFieldValidation(field, result);
+            }
+        });
+
+        // Aggiorna badge complessivo
+        updateOverallBadge(overall, validation);
+    }
 }
 
 function showFieldValidation(fieldId, result) {
@@ -177,12 +202,22 @@ function updateOverallBadge(overall, validation) {
 }
 
 // ============================================================
-// AUTOCOMPLETE COMUNI
+// AUTOCOMPLETE COMUNI (con sanitizzazione XSS — fix B3 e event delegation — fix R4)
 // ============================================================
 function setupComuniAutocomplete(inputId, suggestionsId) {
     const input = document.getElementById(inputId);
     const suggestions = document.getElementById(suggestionsId);
     if (!input || !suggestions) return;
+
+    // Event delegation: un solo listener per tutti i click sui suggerimenti (fix R4)
+    suggestions.addEventListener('click', (e) => {
+        const item = e.target.closest('.suggestion-item');
+        if (item) {
+            input.value = item.dataset.value;
+            suggestions.style.display = 'none';
+            runValidation();
+        }
+    });
 
     input.addEventListener('input', debounce(() => {
         const value = input.value.trim();
@@ -197,22 +232,26 @@ function setupComuniAutocomplete(inputId, suggestionsId) {
             return;
         }
 
-        suggestions.innerHTML = matches.map(m => `
-            <div class="suggestion-item" data-value="${m.name}">
-                <span class="suggestion-name">${m.name}</span>
-                <span class="suggestion-score">${Math.round(m.score * 100)}%</span>
-            </div>
-        `).join('');
-        suggestions.style.display = 'block';
+        // Sanitizzazione XSS: usa DOM API anziché innerHTML (fix B3)
+        suggestions.innerHTML = '';
+        matches.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.dataset.value = m.name;
 
-        // Click su suggerimento
-        suggestions.querySelectorAll('.suggestion-item').forEach(item => {
-            item.addEventListener('click', () => {
-                input.value = item.dataset.value;
-                suggestions.style.display = 'none';
-                runValidation();
-            });
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'suggestion-name';
+            nameSpan.textContent = m.name;
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'suggestion-score';
+            scoreSpan.textContent = `${Math.round(m.score * 100)}%`;
+
+            div.appendChild(nameSpan);
+            div.appendChild(scoreSpan);
+            suggestions.appendChild(div);
         });
+        suggestions.style.display = 'block';
     }, 300));
 
     // Chiudi suggerimenti quando si clicca fuori
@@ -288,10 +327,16 @@ function normalizeData(data) {
 }
 
 // ============================================================
-// SUBMIT
+// SUBMIT (con anti-doppio-click — fix S2)
 // ============================================================
+let isSubmitting = false;
+
 async function handleSubmit(e) {
     e.preventDefault();
+
+    // Anti-doppio-click (fix S2)
+    if (isSubmitting) return;
+    isSubmitting = true;
 
     // Validazione finale
     let data = getFormData();
@@ -302,11 +347,12 @@ async function handleSubmit(e) {
     const missing = required.filter(f => !data[f]);
     if (missing.length > 0) {
         showToast(`Campi obbligatori mancanti: ${missing.join(', ')}`, 'error');
+        isSubmitting = false;
         return;
     }
 
     // Validazione CF
-    const validation = validateDataVsCf(data, comuniDB);
+    const validation = validateDataVsCf(data, dbReady ? comuniDB : null);
     const overall = getOverallStatus(validation);
 
     if (overall === 'error') {
@@ -317,7 +363,10 @@ async function handleSubmit(e) {
         const proceed = confirm(
             `⚠️ Ci sono errori di validazione:\n\n${errors.join('\n')}\n\nVuoi inviare comunque?`
         );
-        if (!proceed) return;
+        if (!proceed) {
+            isSubmitting = false;
+            return;
+        }
     }
 
     // Componi note di validazione (come webapp.py)
@@ -348,7 +397,10 @@ async function handleSubmit(e) {
             body: JSON.stringify(data)
         });
 
-        // no-cors non permette di leggere la risposta, ma il POST va a buon fine
+        // NOTA: mode 'no-cors' restituisce una opaque response (status 0).
+        // Non possiamo verificare errori server-side — questo è un limite noto
+        // delle chiamate cross-origin verso Google Apps Script da GitHub Pages.
+        // Il Code.gs registra comunque eventuali errori nei log dello script.
         showToast('✅ Registrazione inviata con successo!', 'success');
         showSuccessScreen(data);
 
@@ -359,6 +411,7 @@ async function handleSubmit(e) {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
         submitBtn.classList.remove('loading');
+        isSubmitting = false;
     }
 }
 
@@ -368,9 +421,11 @@ async function handleSubmit(e) {
 function showSuccessScreen(data) {
     const form = document.getElementById('registration-form');
     const success = document.getElementById('success-screen');
+    const badge = document.getElementById('validation-badge');
     
     if (form && success) {
         form.style.display = 'none';
+        if (badge) badge.style.display = 'none';
         success.style.display = 'flex';
         
         const nameEl = success.querySelector('.success-name');
@@ -406,7 +461,12 @@ function resetForm() {
 // TOAST NOTIFICATIONS
 // ============================================================
 function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container') || createToastContainer();
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
     
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -420,13 +480,6 @@ function showToast(message, type = 'info') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toast-container';
-    document.body.appendChild(container);
-    return container;
 }
 
 // ============================================================

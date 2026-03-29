@@ -12,6 +12,9 @@
 </head>
 <body>
 
+<!-- Toast Container (statico per prevedibilità) -->
+<div id="toast-container"></div>
+
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="loading-overlay">
     <div class="loading-spinner"></div>
@@ -60,17 +63,17 @@
             <div class="field-row">
                 <div class="field-group required">
                     <label for="cognome">Cognome</label>
-                    <input type="text" id="cognome" name="cognome" required autocomplete="family-name" placeholder="Rossi" style="text-transform: uppercase;">
+                    <input type="text" id="cognome" name="cognome" required autocomplete="family-name" autocapitalize="characters" placeholder="Rossi" style="text-transform: uppercase;">
                 </div>
                 <div class="field-group required">
                     <label for="nome">Nome</label>
-                    <input type="text" id="nome" name="nome" required autocomplete="given-name" placeholder="Mario" style="text-transform: uppercase;">
+                    <input type="text" id="nome" name="nome" required autocomplete="given-name" autocapitalize="characters" placeholder="Mario" style="text-transform: uppercase;">
                 </div>
             </div>
 
             <div class="field-group required">
                 <label for="codice_fiscale">Codice Fiscale</label>
-                <input type="text" id="codice_fiscale" name="codice_fiscale" required maxlength="16" minlength="16" autocomplete="off" placeholder="RSSMRA80A01H294K" aria-describedby="cf-help">
+                <input type="text" id="codice_fiscale" name="codice_fiscale" required maxlength="16" minlength="16" autocomplete="off" autocapitalize="characters" placeholder="RSSMRA80A01H294K" aria-describedby="cf-help">
                 <div class="helper-text" id="cf-help">16 caratteri alfanumerici</div>
             </div>
 
@@ -95,7 +98,7 @@
 
             <div class="field-group">
                 <label for="cellulare">Cellulare</label>
-                <input type="tel" id="cellulare" name="cellulare" autocomplete="tel" placeholder="333 1234567" inputmode="tel">
+                <input type="tel" id="cellulare" name="cellulare" autocomplete="tel" placeholder="333 1234567" inputmode="tel" pattern="[0-9+ ]{6,15}">
             </div>
 
             <div class="field-group" style="position: relative;">
@@ -165,6 +168,7 @@
 
         <!-- Submit -->
         <div class="submit-section">
+            <p class="required-legend"><span class="required-star">*</span> Campi obbligatori</p>
             <button type="submit" id="submit-btn" class="submit-btn">
                 Invia Registrazione
             </button>

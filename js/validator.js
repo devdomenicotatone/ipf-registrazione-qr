@@ -110,9 +110,24 @@ class ComuniDB {
             return [{ name: nomeUpper, score: 1.0, belfiore: this.nameToBelfiore[nomeUpper] }];
         }
 
-        // Fuzzy matching
+        // Ottimizzazione R2: filtra prima per prefisso (O(n) rapido), poi Levenshtein solo sui candidati
+        const prefix = nomeUpper.substring(0, Math.min(3, nomeUpper.length));
+        let candidates = this.allNames.filter(c => c.startsWith(prefix));
+        
+        // Se il filtro prefisso è troppo restrittivo, amplia ai primi 2 caratteri
+        if (candidates.length < 5 && nomeUpper.length >= 2) {
+            const prefix2 = nomeUpper.substring(0, 2);
+            candidates = this.allNames.filter(c => c.startsWith(prefix2));
+        }
+        
+        // Se ancora troppo pochi, usa tutti (fallback per errori di battitura)
+        if (candidates.length < 3) {
+            candidates = this.allNames;
+        }
+
+        // Fuzzy matching solo sui candidati filtrati
         const results = [];
-        for (const candidateName of this.allNames) {
+        for (const candidateName of candidates) {
             const score = similarity(nomeUpper, candidateName);
             if (score >= cutoff) {
                 results.push({ name: candidateName, score: Math.round(score * 1000) / 1000, belfiore: this.nameToBelfiore[candidateName] });
@@ -213,7 +228,8 @@ function cfExtractBirthdate(cf) {
             day = dayCode - 40;
         }
 
-        const year = yearCode > 26 ? 1900 + yearCode : 2000 + yearCode;
+        const currentYearMod = new Date().getFullYear() % 100;
+        const year = yearCode > currentYearMod ? 1900 + yearCode : 2000 + yearCode;
 
         return {
             data: { year, month, day, gender, formatted: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}` },
@@ -372,21 +388,31 @@ function validateDataVsCf(data, db) {
         }
     }
 
-    // Data di nascita
+    // Data di nascita — gestisce sia GG/MM/AAAA che YYYY-MM-DD (da input[type=date])
     const dataNascitaStr = (data.data_nascita || '').trim();
     if (dataNascitaStr) {
         const { data: cfBirth } = cfExtractBirthdate(cf);
         if (cfBirth) {
-            const match = dataNascitaStr.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
-            if (match) {
-                const [, ocrDay, ocrMonth, ocrYear] = match.map(Number);
+            let ocrDay, ocrMonth, ocrYear;
+            const matchIta = dataNascitaStr.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
+            const matchIso = dataNascitaStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+            if (matchIta) {
+                [, ocrDay, ocrMonth, ocrYear] = matchIta.map(Number);
+            } else if (matchIso) {
+                ocrYear = Number(matchIso[1]);
+                ocrMonth = Number(matchIso[2]);
+                ocrDay = Number(matchIso[3]);
+            }
+
+            if (ocrDay !== undefined) {
                 const mismatches = [];
                 if (ocrYear !== cfBirth.year) mismatches.push(`anno: inserito=${ocrYear}, CF=${cfBirth.year}`);
                 if (ocrMonth !== cfBirth.month) mismatches.push(`mese: inserito=${ocrMonth}, CF=${cfBirth.month}`);
                 if (ocrDay !== cfBirth.day) mismatches.push(`giorno: inserito=${ocrDay}, CF=${cfBirth.day}`);
 
                 if (mismatches.length === 0) {
-                    results.data_nascita = { status: 'ok', detail: `${dataNascitaStr} corrisponde al CF ✓ (Genere: ${cfBirth.gender})` };
+                    results.data_nascita = { status: 'ok', detail: `Data corrisponde al CF ✓ (Genere: ${cfBirth.gender})` };
                 } else {
                     results.data_nascita = {
                         status: 'error',
@@ -493,20 +519,31 @@ function validateDataVsCf(data, db) {
             : { status: 'warning', detail: `Formato "${numeroDoc}" non riconosciuto` };
     }
 
-    // Scadenza documento
+    // Scadenza documento — gestisce sia GG/MM/AAAA che YYYY-MM-DD
     const scadenzaStr = (data.scadenza || '').trim();
     if (scadenzaStr) {
-        const matchScad = scadenzaStr.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
-        if (matchScad) {
+        let sDay, sMonth, sYear;
+        const matchScadIta = scadenzaStr.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
+        const matchScadIso = scadenzaStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+        if (matchScadIta) {
+            [, sDay, sMonth, sYear] = matchScadIta.map(Number);
+        } else if (matchScadIso) {
+            sYear = Number(matchScadIso[1]);
+            sMonth = Number(matchScadIso[2]);
+            sDay = Number(matchScadIso[3]);
+        }
+
+        if (sDay !== undefined) {
             try {
-                const [, sDay, sMonth, sYear] = matchScad.map(Number);
                 const scadDate = new Date(sYear, sMonth - 1, sDay);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                const formatted = `${String(sDay).padStart(2,'0')}/${String(sMonth).padStart(2,'0')}/${sYear}`;
                 if (scadDate < today) {
-                    results.scadenza = { status: 'warning', detail: `⏰ Documento SCADUTO il ${scadenzaStr}` };
+                    results.scadenza = { status: 'warning', detail: `⏰ Documento SCADUTO il ${formatted}` };
                 } else {
-                    results.scadenza = { status: 'ok', detail: `Documento valido fino al ${scadenzaStr} ✓` };
+                    results.scadenza = { status: 'ok', detail: `Documento valido fino al ${formatted} ✓` };
                 }
             } catch {
                 results.scadenza = { status: 'warning', detail: `Data scadenza non valida: "${scadenzaStr}"` };

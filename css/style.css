@@ -418,6 +418,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 10px;
 }
 
+/* ---------- Required Legend ---------- */
+.required-legend {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+.required-star {
+    color: var(--error);
+    font-weight: 700;
+}
+
 /* ---------- Submit Button ---------- */
 .submit-section {
     padding: 4px 0 32px;
