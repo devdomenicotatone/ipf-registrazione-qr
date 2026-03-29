@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Modulo di auto-registrazione dell'Istituto per la Famiglia Rimini ODV. Inserisci i tuoi dati per completare l'iscrizione.">
+    <meta name="theme-color" content="#f5f3ef">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>IPF Rimini — Registrazione Tesserati</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Caricamento in corso...</div>
+</div>
+
+<div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="app-logo-emoji">🏠</div>
+        <h1 class="app-title">Istituto per la Famiglia</h1>
+        <p class="app-subtitle">Modulo di Registrazione Tesserati</p>
+        <p class="app-location">Rimini ODV — Associazione di Volontariato</p>
+    </header>
+
+    <!-- Validation Badge -->
+    <div id="validation-badge" class="validation-badge"></div>
+
+    <!-- Form -->
+    <form id="registration-form" autocomplete="on" novalidate>
+
+        <!-- Sezione 1: Tessera -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">📋</span> Tessera
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="n_tessera">N. Tessera</label>
+                    <input type="text" id="n_tessera" name="n_tessera" inputmode="numeric" pattern="[0-9]*" placeholder="es. 425">
+                </div>
+                <div class="field-group">
+                    <label for="anno_iscrizione">Anno Iscrizione</label>
+                    <input type="text" id="anno_iscrizione" name="anno_iscrizione" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione 2: Dati Anagrafici -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">👤</span> Dati Anagrafici
+            </div>
+
+            <div class="field-row">
+                <div class="field-group required">
+                    <label for="cognome">Cognome</label>
+                    <input type="text" id="cognome" name="cognome" required autocomplete="family-name" placeholder="Rossi" style="text-transform: uppercase;">
+                </div>
+                <div class="field-group required">
+                    <label for="nome">Nome</label>
+                    <input type="text" id="nome" name="nome" required autocomplete="given-name" placeholder="Mario" style="text-transform: uppercase;">
+                </div>
+            </div>
+
+            <div class="field-group required">
+                <label for="codice_fiscale">Codice Fiscale</label>
+                <input type="text" id="codice_fiscale" name="codice_fiscale" required maxlength="16" minlength="16" autocomplete="off" placeholder="RSSMRA80A01H294K" aria-describedby="cf-help">
+                <div class="helper-text" id="cf-help">16 caratteri alfanumerici</div>
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="data_nascita">Data di Nascita</label>
+                    <input type="date" id="data_nascita" name="data_nascita" autocomplete="bday">
+                </div>
+                <div class="field-group" style="position: relative;">
+                    <label for="luogo_nascita">Luogo di Nascita</label>
+                    <input type="text" id="luogo_nascita" name="luogo_nascita" placeholder="Rimini" autocomplete="off">
+                    <div id="luogo_nascita_suggestions" class="suggestions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione 3: Contatti e Residenza -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">📍</span> Contatti e Residenza
+            </div>
+
+            <div class="field-group">
+                <label for="cellulare">Cellulare</label>
+                <input type="tel" id="cellulare" name="cellulare" autocomplete="tel" placeholder="333 1234567" inputmode="tel">
+            </div>
+
+            <div class="field-group" style="position: relative;">
+                <label for="comune_residenza">Comune di Residenza</label>
+                <input type="text" id="comune_residenza" name="comune_residenza" placeholder="Rimini" autocomplete="off">
+                <div id="comune_residenza_suggestions" class="suggestions"></div>
+            </div>
+
+            <div class="field-group">
+                <label for="indirizzo">Indirizzo</label>
+                <input type="text" id="indirizzo" name="indirizzo" autocomplete="street-address" placeholder="Via Roma 1">
+            </div>
+
+            <div class="field-group">
+                <label for="nucleo_familiare">Nucleo Familiare (n° componenti)</label>
+                <input type="number" id="nucleo_familiare" name="nucleo_familiare" min="1" max="20" inputmode="numeric" placeholder="3">
+            </div>
+        </div>
+
+        <!-- Sezione 4: Documento d'Identità -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">🪪</span> Documento d'Identità
+            </div>
+
+            <div class="field-group">
+                <label for="documento">Tipo Documento</label>
+                <select id="documento" name="documento">
+                    <option value="">— Seleziona —</option>
+                    <option value="C.I.">Carta d'Identità</option>
+                    <option value="CIE">Carta d'Identità Elettronica</option>
+                    <option value="PATENTE">Patente di Guida</option>
+                    <option value="PASSAPORTO">Passaporto</option>
+                    <option value="PERMESSO DI SOGGIORNO">Permesso di Soggiorno</option>
+                </select>
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="numero_doc">Numero Documento</label>
+                    <input type="text" id="numero_doc" name="numero_doc" autocomplete="off" placeholder="CA12345AB">
+                </div>
+                <div class="field-group">
+                    <label for="scadenza">Scadenza</label>
+                    <input type="date" id="scadenza" name="scadenza">
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione 5: ISEE -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">💶</span> Situazione Economica
+            </div>
+
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="isee_anno">ISEE Anno</label>
+                    <input type="text" id="isee_anno" name="isee_anno" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="2025">
+                </div>
+                <div class="field-group">
+                    <label for="isee_importo">ISEE Importo (€)</label>
+                    <input type="text" id="isee_importo" name="isee_importo" inputmode="decimal" placeholder="3.600,00">
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-section">
+            <button type="submit" id="submit-btn" class="submit-btn">
+                Invia Registrazione
+            </button>
+        </div>
+
+    </form>
+
+    <!-- Success Screen -->
+    <div id="success-screen" class="success-screen">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Registrazione Completata!</div>
+        <div class="success-name"></div>
+        <div class="success-message">
+            I tuoi dati sono stati inviati con successo. Il responsabile li verificherà a breve.
+        </div>
+        <button class="reset-btn" onclick="resetForm()">Nuova Registrazione</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p class="footer-org">Istituto per la Famiglia Rimini ODV</p>
+        <p class="footer-address">Via G. Brodolini 10, 47922 Rimini</p>
+        <p>📧 <a href="mailto:info@ipfrimini.org">info@ipfrimini.org</a></p>
+        <p style="margin-top: 8px;">I dati inseriti saranno trattati nel rispetto della normativa sulla privacy.</p>
+    </footer>
+
+</div>
+
+<!-- Scripts -->
+<script src="js/validator.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
