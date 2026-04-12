@@ -21,7 +21,7 @@
 
 // ID del foglio Google Sheets (lo stesso usato dall'app OCR)
 const SPREADSHEET_ID = '1zp60MFIoLNZng8GdeMSaYfUPceLb2Yr273fYjSlu8VM';
-const SHEET_NAME = 'ELENCO TESSERATI.csv';
+const SHEET_NAME = 'ELENCO TESSERATI';
 
 // Cartella Google Drive per le attestazioni ISEE
 const DRIVE_FOLDER_NAME = 'IPF_Attestazioni_ISEE';
@@ -199,7 +199,10 @@ function handleIseeUpdate(data) {
 
   // Se c'è un file PDF, salvalo su Google Drive
   let driveLink = '';
-  if (data.file_base64) {
+  const b64length = data.file_base64 ? data.file_base64.length : 0;
+  Logger.log('file_base64 presente: ' + !!data.file_base64 + ', lunghezza: ' + b64length + ', file_name: ' + (data.file_name || 'N/A'));
+  
+  if (data.file_base64 && data.file_base64.length > 100) {
     try {
       driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
@@ -210,8 +213,14 @@ function handleIseeUpdate(data) {
       sheet.getRange(targetRow, 17).setValue(noteWithLink);
     } catch (fileError) {
       Logger.log('Errore salvataggio file: ' + fileError.toString());
-      // Non blocchiamo l'aggiornamento per un errore sul file
+      // Scrivi l'errore nelle note per diagnostica
+      const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
+      sheet.getRange(targetRow, 17).setValue(currentNotes + ' | ⚠️ FILE_ERROR: ' + fileError.toString().substring(0, 200));
     }
+  } else {
+    // Log diagnostico: il file non è arrivato
+    const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
+    sheet.getRange(targetRow, 17).setValue(currentNotes + ' | ⚠️ NO_FILE (b64len=' + b64length + ')');
   }
 
   Logger.log('ISEE aggiornato per ' + cf + ' (riga ' + targetRow + ')' + (driveLink ? ' — File: ' + driveLink : ''));
@@ -261,6 +270,38 @@ function saveIseeFile(base64Data, originalName, cf, cognome, nome) {
  * Gestisce le richieste GET (per test).
  */
 function doGet(e) {
+  // Modalità diagnostica: ?debug=1
+  if (e && e.parameter && e.parameter.debug === '1') {
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const allSheets = ss.getSheets().map(s => s.getName());
+      const sheet = ss.getSheetByName(SHEET_NAME);
+      let headers = [];
+      let rowCount = 0;
+      if (sheet) {
+        const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+        headers = headerRange.getValues()[0].map((h, i) => ({col: i+1, letter: String.fromCharCode(65+i), header: String(h)}));
+        rowCount = sheet.getLastRow();
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'ok',
+        debug: true,
+        spreadsheet_id: SPREADSHEET_ID,
+        configured_sheet_name: SHEET_NAME,
+        all_sheet_names: allSheets,
+        sheet_found: !!sheet,
+        headers: headers,
+        total_rows: rowCount,
+        drive_folder_name: DRIVE_FOLDER_NAME
+      }, null, 2)).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        error: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     status: 'ok',
     message: 'IPF Auto-Registrazione API attiva',
