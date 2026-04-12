@@ -451,22 +451,9 @@ function showIseeSuccessScreen(data) {
         const nameEl = success.querySelector('.success-name');
         if (nameEl) nameEl.textContent = `${data.cognome} ${data.nome}`;
 
-        // Mostra info sul file PDF caricato
+        // Nascondi info Drive (informazione interna)
         const driveInfo = success.querySelector('.success-drive-info');
-        if (driveInfo) {
-            if (fileBase64 && selectedFile) {
-                driveInfo.innerHTML = `
-                    <div class="drive-info-icon">📁</div>
-                    <div class="drive-info-text">
-                        Il file <strong>${selectedFile.name}</strong> è stato salvato 
-                        nella cartella <strong>IPF_Attestazioni_ISEE</strong> su Google Drive.
-                    </div>
-                `;
-                driveInfo.style.display = 'flex';
-            } else {
-                driveInfo.style.display = 'none';
-            }
-        }
+        if (driveInfo) driveInfo.style.display = 'none';
     }
 }
 

@@ -190,7 +190,7 @@ function handleIseeUpdate(data) {
     if (!isNaN(importoNum)) {
       const cell = sheet.getRange(targetRow, 16);
       cell.setValue(importoNum);
-      cell.setNumberFormat('€ #.##0,00');
+      cell.setNumberFormat('€#,##0.00');
     } else {
       sheet.getRange(targetRow, 16).setValue(data.isee_importo);
     }
