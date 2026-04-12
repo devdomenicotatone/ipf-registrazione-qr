@@ -185,10 +185,18 @@ function handleIseeUpdate(data) {
     sheet.getRange(targetRow, 15).setValue(data.isee_anno);
   }
   if (data.isee_importo) {
-    sheet.getRange(targetRow, 16).setValue(data.isee_importo);
+    // Scrivi come numero e formatta come valuta €
+    const importoNum = parseFloat(data.isee_importo);
+    if (!isNaN(importoNum)) {
+      const cell = sheet.getRange(targetRow, 16);
+      cell.setValue(importoNum);
+      cell.setNumberFormat('€ #.##0,00');
+    } else {
+      sheet.getRange(targetRow, 16).setValue(data.isee_importo);
+    }
   }
 
-  // Aggiungi nota di aggiornamento nella colonna Note (colonna Q = 17)
+  // Colonna Q (17) = Note: data/ora aggiornamento
   const existingNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
   const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'dd/MM/yyyy HH:mm');
   const protocollo = data.protocollo_inps ? ' Prot: ' + data.protocollo_inps : '';
@@ -200,27 +208,18 @@ function handleIseeUpdate(data) {
   // Se c'è un file PDF, salvalo su Google Drive
   let driveLink = '';
   const b64length = data.file_base64 ? data.file_base64.length : 0;
-  Logger.log('file_base64 presente: ' + !!data.file_base64 + ', lunghezza: ' + b64length + ', file_name: ' + (data.file_name || 'N/A'));
   
   if (data.file_base64 && data.file_base64.length > 100) {
     try {
       driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
       
-      // Salva il link al file nella colonna Note
-      const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
-      const noteWithLink = currentNotes + ' | 📎 ' + driveLink;
-      sheet.getRange(targetRow, 17).setValue(noteWithLink);
+      // Colonna R (18) = URL ISEE: link al file su Drive
+      sheet.getRange(targetRow, 18).setValue(driveLink);
     } catch (fileError) {
       Logger.log('Errore salvataggio file: ' + fileError.toString());
-      // Scrivi l'errore nelle note per diagnostica
-      const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
-      sheet.getRange(targetRow, 17).setValue(currentNotes + ' | ⚠️ FILE_ERROR: ' + fileError.toString().substring(0, 200));
+      sheet.getRange(targetRow, 18).setValue('⚠️ ERRORE: ' + fileError.toString().substring(0, 150));
     }
-  } else {
-    // Log diagnostico: il file non è arrivato
-    const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
-    sheet.getRange(targetRow, 17).setValue(currentNotes + ' | ⚠️ NO_FILE (b64len=' + b64length + ')');
   }
 
   Logger.log('ISEE aggiornato per ' + cf + ' (riga ' + targetRow + ')' + (driveLink ? ' — File: ' + driveLink : ''));
