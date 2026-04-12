@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>IPF Rimini — Registrazione Tesserati</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/isee.css">
 </head>
 <body>
 
@@ -163,6 +164,26 @@
                     <label for="isee_importo">ISEE Importo (€)</label>
                     <input type="text" id="isee_importo" name="isee_importo" inputmode="decimal" placeholder="3.600,00">
                 </div>
+            </div>
+
+            <!-- Upload PDF ISEE -->
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">
+                    <strong>Tocca per caricare</strong> il PDF dell'attestazione ISEE
+                </div>
+                <div class="upload-hint">Facoltativo — Formato PDF — Max 5 MB</div>
+                <input type="file" id="isee_file" name="isee_file" accept=".pdf,application/pdf" class="file-input-hidden">
+            </div>
+
+            <!-- File preview (hidden by default) -->
+            <div id="file-preview" class="file-preview" style="display: none;">
+                <div class="file-preview-icon">✅</div>
+                <div class="file-preview-info">
+                    <div class="file-preview-name" id="file-name"></div>
+                    <div class="file-preview-size" id="file-size"></div>
+                </div>
+                <button type="button" class="file-remove-btn" id="file-remove" title="Rimuovi file">✕</button>
             </div>
         </div>
 

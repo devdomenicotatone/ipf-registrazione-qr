@@ -21,6 +21,11 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAVR1693co5hEW
 const comuniDB = new ComuniDB();
 let dbReady = false;
 
+// Stato file ISEE
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+let selectedFile = null;
+let fileBase64 = null;
+
 // Debounce condiviso per la validazione CF (fix R3)
 const debouncedValidation = debounce(() => runValidation(), 400);
 
@@ -54,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup autocomplete comuni
     setupComuniAutocomplete('luogo_nascita', 'luogo_nascita_suggestions');
     setupComuniAutocomplete('comune_residenza', 'comune_residenza_suggestions');
+
+    // Setup file upload ISEE
+    setupFileUpload();
 
     console.log('✅ App inizializzata' + (dbReady ? '' : ' (senza DB comuni)'));
 });
@@ -378,6 +386,12 @@ async function handleSubmit(e) {
     data.validation_notes = notes;
     data.source = 'QR_FORM'; // Per distinguere da OCR
 
+    // Aggiungi file ISEE se presente
+    if (fileBase64) {
+        data.file_base64 = fileBase64;
+        data.file_name = selectedFile ? selectedFile.name : 'attestazione_isee.pdf';
+    }
+
     // Invia
     const submitBtn = document.getElementById('submit-btn');
     const originalText = submitBtn.textContent;
@@ -438,6 +452,9 @@ function resetForm() {
         const annoField = document.getElementById('anno_iscrizione');
         if (annoField) annoField.value = new Date().getFullYear();
 
+        // Reset file upload
+        removeFile();
+
         // Resetta validazione
         document.querySelectorAll('.field-group').forEach(g => {
             g.classList.remove('valid', 'warning', 'error');
@@ -447,6 +464,108 @@ function resetForm() {
         const badge = document.getElementById('validation-badge');
         if (badge) badge.style.display = 'none';
     }
+}
+
+// ============================================================
+// FILE UPLOAD ISEE
+// ============================================================
+function setupFileUpload() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('isee_file');
+    const fileRemove = document.getElementById('file-remove');
+
+    if (!uploadArea || !fileInput) return;
+
+    // Impedisci che il click sull'input bubblizzi all'area
+    fileInput.addEventListener('click', (e) => e.stopPropagation());
+
+    // Click to upload
+    uploadArea.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
+
+    // Drag & Drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) handleFileSelect(files[0]);
+    });
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
+    });
+
+    // Remove file
+    if (fileRemove) {
+        fileRemove.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeFile();
+        });
+    }
+}
+
+function handleFileSelect(file) {
+    const uploadArea = document.getElementById('upload-area');
+    const filePreview = document.getElementById('file-preview');
+
+    if (file.type !== 'application/pdf') {
+        showToast('❌ Solo file PDF sono accettati', 'error');
+        uploadArea.classList.add('error');
+        setTimeout(() => uploadArea.classList.remove('error'), 2000);
+        return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        showToast(`❌ File troppo grande (${sizeMB} MB). Max 5 MB.`, 'error');
+        uploadArea.classList.add('error');
+        setTimeout(() => uploadArea.classList.remove('error'), 2000);
+        return;
+    }
+
+    selectedFile = file;
+
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = formatFileSize(file.size);
+    uploadArea.style.display = 'none';
+    filePreview.style.display = 'flex';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        fileBase64 = e.target.result.split(',')[1];
+        console.log(`📎 File caricato: ${file.name} (${formatFileSize(file.size)})`);
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeFile() {
+    const uploadArea = document.getElementById('upload-area');
+    const filePreview = document.getElementById('file-preview');
+    const fileInput = document.getElementById('isee_file');
+
+    selectedFile = null;
+    fileBase64 = null;
+    if (fileInput) fileInput.value = '';
+    if (uploadArea) uploadArea.style.display = '';
+    if (filePreview) filePreview.style.display = 'none';
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 // ============================================================

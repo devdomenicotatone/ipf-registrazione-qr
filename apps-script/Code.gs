@@ -117,14 +117,31 @@ function handleRegistration(data) {
       cell.setNumberFormat('€#,##0.00');
     }
   }
+
+  // Se c'è un file PDF ISEE, salvalo su Google Drive
+  let driveLink = '';
+  if (data.file_base64 && data.file_base64.length > 100) {
+    try {
+      const cf = (data.codice_fiscale || '').toUpperCase().trim();
+      driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
+      Logger.log('File ISEE salvato su Drive: ' + driveLink);
+      
+      // Colonna R (18) = URL ISEE
+      sheet.getRange(lastRow, 18).setValue(driveLink);
+    } catch (fileError) {
+      Logger.log('Errore salvataggio file ISEE: ' + fileError.toString());
+      sheet.getRange(lastRow, 18).setValue('⚠️ ERRORE: ' + fileError.toString().substring(0, 150));
+    }
+  }
   
   // Log
-  Logger.log('Nuova registrazione QR: ' + data.cognome + ' ' + data.nome);
+  Logger.log('Nuova registrazione QR: ' + data.cognome + ' ' + data.nome + (driveLink ? ' — File: ' + driveLink : ''));
   
   return ContentService.createTextOutput(JSON.stringify({
     status: 'ok',
     message: 'Registrazione salvata',
-    row: sheet.getLastRow()
+    row: lastRow,
+    driveLink: driveLink
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -188,9 +205,10 @@ function handleIseeUpdate(data) {
 
   // Colonna Q (17) = Note: data/ora aggiornamento
   const existingNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
-  const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'dd/MM/yyyy HH:mm');
-  const protocollo = data.protocollo_inps ? ' Prot: ' + data.protocollo_inps : '';
-  const updateNote = '[ISEE_UPDATE ' + timestamp + protocollo + ']';
+  const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'HH:mm');
+  const datestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'dd/MM/yyyy');
+  const protocollo = data.protocollo_inps ? ' — Prot: ' + data.protocollo_inps : '';
+  const updateNote = 'ISEE Aggiornato alle ' + timestamp + ' del ' + datestamp + protocollo;
   
   const newNotes = existingNotes ? existingNotes + ' | ' + updateNote : updateNote;
   sheet.getRange(targetRow, 17).setValue(newNotes);
