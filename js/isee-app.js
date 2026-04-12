@@ -55,18 +55,6 @@ function setupIseeValidation() {
         cfEl.addEventListener('blur', () => validateCfField());
     }
 
-    // Maiuscolo per cognome/nome
-    ['cognome', 'nome'].forEach(fieldId => {
-        const el = document.getElementById(fieldId);
-        if (el) {
-            el.addEventListener('input', () => {
-                const pos = el.selectionStart;
-                el.value = el.value.toUpperCase();
-                el.setSelectionRange(pos, pos);
-            });
-        }
-    });
-
     // Validazione ISEE importo
     const importoEl = document.getElementById('isee_importo');
     if (importoEl) {
@@ -275,8 +263,6 @@ function formatFileSize(bytes) {
 function getIseeFormData() {
     return {
         codice_fiscale: document.getElementById('codice_fiscale')?.value?.trim() || '',
-        cognome: document.getElementById('cognome')?.value?.trim() || '',
-        nome: document.getElementById('nome')?.value?.trim() || '',
         isee_anno: document.getElementById('isee_anno')?.value?.trim() || '',
         isee_importo: document.getElementById('isee_importo')?.value?.trim() || '',
         protocollo_inps: document.getElementById('protocollo_inps')?.value?.trim() || '',
@@ -285,10 +271,6 @@ function getIseeFormData() {
 }
 
 function normalizeIseeData(data) {
-    // Maiuscolo
-    if (data.cognome) data.cognome = data.cognome.toUpperCase();
-    if (data.nome) data.nome = data.nome.toUpperCase();
-
     // ISEE importo: normalizza al formato numerico
     if (data.isee_importo) {
         let isee = data.isee_importo.replace(/[€$\s]/g, '');
@@ -318,7 +300,7 @@ async function handleIseeSubmit(e) {
     data = normalizeIseeData(data);
 
     // Campi obbligatori
-    const required = ['codice_fiscale', 'cognome', 'nome', 'isee_anno', 'isee_importo'];
+    const required = ['codice_fiscale', 'isee_anno', 'isee_importo'];
     const missing = required.filter(f => !data[f]);
     if (missing.length > 0) {
         showToast(`⚠️ Compila tutti i campi obbligatori`, 'error');
@@ -376,114 +358,10 @@ async function handleIseeSubmit(e) {
 }
 
 /**
- * Invia i dati ISEE con strategia PRO a 2 fasi:
- * 1) Fase di validazione via fetch (JSON) → legge la risposta del backend
- * 2) Se c'è un file PDF, invia via iframe (bypassa CORS per upload grandi)
- * 
- * Questo garantisce che errori (CF non trovato, nomi invertiti, ecc.)
- * vengano SEMPRE mostrati all'utente.
+ * Invia i dati ISEE via hidden form + iframe.
+ * L'identificazione si basa esclusivamente sul Codice Fiscale.
  */
-async function submitIseeData(url, data) {
-    // Separa il file dai dati di validazione
-    const fileData = data.file_base64;
-    const fileName = data.file_name;
-
-    // FASE 1: Valida senza scrivere (validate_only)
-    const validationPayload = { ...data };
-    delete validationPayload.file_base64;
-    delete validationPayload.file_name;
-    validationPayload.validate_only = 'true';
-
-    try {
-        // Tentativo fetch diretto per validazione
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(validationPayload).toString(),
-            redirect: 'follow'
-        });
-        const result = await response.json();
-
-        // Se la validazione ha fallito, ritorna l'errore immediatamente
-        if (result.status === 'error') {
-            return result;
-        }
-
-        // FASE 2: Validazione ok → invia tutti i dati (+ file) via iframe per la scrittura
-        await submitFileViaIframe(url, data);
-
-        return result;
-
-    } catch (fetchError) {
-        // Fetch fallito (CORS/rete): fallback completo via iframe
-        console.warn('Fetch fallito, fallback iframe:', fetchError.message);
-        return submitAllViaIframe(url, data);
-    }
-}
-
-/**
- * Invia i dati completi (incluso file) via iframe nascosto.
- * Usato come FASE 2 dopo validazione ok, o come fallback se fetch non funziona.
- */
-function submitFileViaIframe(url, data) {
-    return new Promise((resolve, reject) => {
-        try {
-            const iframeName = 'isee_iframe_' + Date.now();
-            const iframe = document.createElement('iframe');
-            iframe.name = iframeName;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = url;
-            form.target = iframeName;
-            form.style.display = 'none';
-
-            Object.entries(data).forEach(([key, value]) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value || '';
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-
-            iframe.onload = () => {
-                setTimeout(() => {
-                    form.remove();
-                    iframe.remove();
-                }, 2000);
-                resolve({ status: 'ok' });
-            };
-
-            iframe.onerror = () => {
-                form.remove();
-                iframe.remove();
-                reject(new Error('Errore di rete durante l\'invio del file'));
-            };
-
-            setTimeout(() => {
-                if (document.body.contains(iframe)) {
-                    form.remove();
-                    iframe.remove();
-                    resolve({ status: 'ok' });
-                }
-            }, 30000);
-
-            form.submit();
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-/**
- * Fallback completo: invia tutto via iframe quando fetch non è disponibile.
- * In questo caso non possiamo leggere la risposta del backend.
- */
-function submitAllViaIframe(url, data) {
+function submitIseeData(url, data) {
     return new Promise((resolve, reject) => {
         try {
             const iframeName = 'isee_iframe_' + Date.now();
@@ -522,6 +400,7 @@ function submitAllViaIframe(url, data) {
                 reject(new Error('Errore di rete durante l\'invio'));
             };
 
+            // Timeout 30 secondi (file grandi possono richiedere più tempo)
             setTimeout(() => {
                 if (document.body.contains(iframe)) {
                     form.remove();
@@ -551,7 +430,7 @@ function showIseeSuccessScreen(data) {
         success.style.display = 'flex';
 
         const nameEl = success.querySelector('.success-name');
-        if (nameEl) nameEl.textContent = `${data.cognome} ${data.nome}`;
+        if (nameEl) nameEl.textContent = `CF: ${data.codice_fiscale}`;
 
         // Nascondi info Drive (informazione interna)
         const driveInfo = success.querySelector('.success-drive-info');
