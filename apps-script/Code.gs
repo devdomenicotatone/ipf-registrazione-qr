@@ -101,8 +101,15 @@ function handleRegistration(data) {
     data.scadenza || '',
     data.isee_anno || '',
     data.isee_importo || '',
-    (data.validation_notes || '') + (data.source ? ' [' + data.source + ']' : '')
+    data.validation_notes || ''
   ];
+  
+  // Aggiungi nota di registrazione con timestamp
+  const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'HH:mm');
+  const datestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'dd/MM/yyyy');
+  const regNote = 'Registrato alle ' + timestamp + ' del ' + datestamp;
+  const existingNotes = String(row[row.length - 1] || '');
+  row[row.length - 1] = existingNotes ? existingNotes + ' | ' + regNote : regNote;
   
   // Aggiungi la riga al foglio
   sheet.appendRow(row);
