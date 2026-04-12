@@ -107,6 +107,17 @@ function handleRegistration(data) {
   // Aggiungi la riga al foglio
   sheet.appendRow(row);
   
+  // Formatta la colonna ISEE Importo (P = colonna 16) come valuta €
+  const lastRow = sheet.getLastRow();
+  if (data.isee_importo) {
+    const importoNum = parseFloat(data.isee_importo);
+    if (!isNaN(importoNum)) {
+      const cell = sheet.getRange(lastRow, 16);
+      cell.setValue(importoNum);
+      cell.setNumberFormat('€#,##0.00');
+    }
+  }
+  
   // Log
   Logger.log('Nuova registrazione QR: ' + data.cognome + ' ' + data.nome);
   
@@ -159,24 +170,47 @@ function handleIseeUpdate(data) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Verifica cognome e nome (sicurezza extra)
+  // Verifica cognome e nome (sicurezza anti-frode)
   const rowData = allData[targetRow - 1];
   const savedCognome = String(rowData[2] || '').toUpperCase().trim();
   const savedNome = String(rowData[3] || '').toUpperCase().trim();
   const inputCognome = (data.cognome || '').toUpperCase().trim();
   const inputNome = (data.nome || '').toUpperCase().trim();
 
-  if (savedCognome && inputCognome && savedCognome !== inputCognome) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: 'Il cognome non corrisponde a quello registrato per questo CF.'
-    })).setMimeType(ContentService.MimeType.JSON);
+  if (savedCognome && savedNome && inputCognome && inputNome) {
+    const cognomeOk = savedCognome === inputCognome;
+    const nomeOk = savedNome === inputNome;
+
+    if (!cognomeOk || !nomeOk) {
+      // Controlla se nome e cognome sono invertiti
+      const swappedCognomeOk = savedCognome === inputNome;
+      const swappedNomeOk = savedNome === inputCognome;
+
+      if (swappedCognomeOk && swappedNomeOk) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: 'Sembra che tu abbia invertito Nome e Cognome. Il cognome registrato è "' + savedCognome + '" e il nome è "' + savedNome + '". Correggi i campi e riprova.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Non invertiti, ma non corrispondono
+      const errors = [];
+      if (!cognomeOk) errors.push('Cognome');
+      if (!nomeOk) errors.push('Nome');
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: errors.join(' e ') + ' non corrispondono ai dati registrati per questo Codice Fiscale.'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
   }
 
-  if (savedNome && inputNome && savedNome !== inputNome) {
+  // Se è una richiesta di sola validazione, non scrivere nulla
+  if (data.validate_only === 'true' || data.validate_only === true) {
     return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: 'Il nome non corrisponde a quello registrato per questo CF.'
+      status: 'ok',
+      message: 'Validazione superata',
+      validated: true,
+      row: targetRow
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
