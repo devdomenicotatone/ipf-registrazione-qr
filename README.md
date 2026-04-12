@@ -8,24 +8,28 @@ I dati vengono validati in tempo reale e salvati automaticamente nel Google Shee
 
 ```
 QR Code (in ufficio) → GitHub Pages (form HTML/JS) → Google Apps Script → Google Sheets
+                                                                        → Google Drive (PDF ISEE)
 ```
 
 - **Frontend**: HTML/CSS/JS statico su GitHub Pages
 - **Validazione**: JavaScript client-side (port di `validator.py`)
 - **Backend**: Google Apps Script (serverless, gratuito)
-- **Storage**: Stesso Google Sheet dell'app OCR
+- **Storage**: Stesso Google Sheet dell'app OCR + Google Drive per PDF
 - **AI**: Nessuna — tutto deterministico
 
 ## 📁 Struttura File
 
 ```
 QR/
-├── index.html              # Form principale
+├── index.html              # Form registrazione principale
+├── isee.html               # Form aggiornamento ISEE (dedicato)
 ├── css/
-│   └── style.css           # Design system (dark theme, mobile-first)
+│   ├── style.css           # Design system (palette IPF, mobile-first)
+│   └── isee.css            # Stili aggiuntivi pagina ISEE
 ├── js/
 │   ├── validator.js         # Port di validator.py (checksum CF, fuzzy matching, ecc.)
-│   └── app.js              # Logica form, validazione real-time, submit
+│   ├── app.js              # Logica form registrazione
+│   └── isee-app.js         # Logica form ISEE (validazione, upload PDF, submit)
 ├── data/
 │   └── comuni.json         # DB Comuni compatto (432 KB, da DB_Comuni.csv)
 ├── apps-script/
@@ -47,9 +51,11 @@ QR/
    - Chi ha accesso: **Chiunque**
 6. Copia l'**URL** generato
 
+> ⚠️ **IMPORTANTE**: L'autorizzazione deve includere anche l'accesso a **Google Drive** per il salvataggio dei PDF ISEE. Se richiesto, accetta i permessi per Drive.
+
 ### 2. Configura l'URL nel Form
 
-Apri `js/app.js` e sostituisci:
+Apri `js/app.js` e `js/isee-app.js` e sostituisci:
 
 ```javascript
 const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
@@ -80,7 +86,14 @@ Poi su GitHub:
 
 ### 4. Genera QR Code
 
-Vai su [qr-code-generator.com](https://www.qr-code-generator.com/) e genera un QR con l'URL di GitHub Pages. Stampalo e appendilo in ufficio.
+Genera **due QR Code** distinti:
+
+| QR Code | URL | Scopo |
+|---|---|---|
+| 🟠 **Registrazione** | `https://....github.io/ipf-registrazione-qr/` | Nuovi tesserati |
+| 🟢 **Aggiornamento ISEE** | `https://....github.io/ipf-registrazione-qr/isee.html` | Tesserati esistenti — aggiornamento ISEE |
+
+Usa [qr-code-generator.com](https://www.qr-code-generator.com/) e stampa entrambi in ufficio.
 
 ## ✅ Validazione Integrata
 
@@ -97,13 +110,32 @@ Il form riutilizza le **stesse regole** di `validator.py` dell'app OCR:
 | **Documento** | Formato CI, CIE, Passaporto, Permesso |
 | **Scadenza** | Controllo documento scaduto |
 
-## 🔄 Migrazione Futura
+## 📊 Pagina Aggiornamento ISEE
 
-Il progetto è progettato per una facile migrazione:
+La pagina `isee.html` è dedicata ai **tesserati già registrati** che devono aggiornare il proprio ISEE.
 
-- **→ Render**: Converti in Flask app, `validator.js` ha un export Node.js compatibile
-- **→ Server casalingo** (RPi 5 / Mini PC N100): Stessa app Flask, accesso via rete locale o Tailscale
-- **→ Server dedicato** (Jetson Orin): Solo se serve anche AI/ML, overkill per questo use case
+### Funzionalità:
+- **Identificazione** per Codice Fiscale (cerca nel foglio)
+- **Verifica** cognome/nome corrispondono alla registrazione
+- **Upload PDF** dell'attestazione ISEE (salvato su Google Drive)
+- **Aggiornamento in-place** delle colonne ISEE nel foglio
+
+### Flusso:
+1. L'utente scansiona il QR Code ISEE
+2. Inserisce CF + cognome + nome + dati ISEE
+3. Carica il PDF dell'attestazione (max 5 MB)
+4. Il backend cerca il CF nel foglio, verifica i dati, aggiorna ISEE
+5. Il PDF viene salvato nella cartella Drive `IPF_Attestazioni_ISEE`
+
+### Se il CF non viene trovato:
+L'utente riceve un messaggio di errore con l'invito a usare il form di registrazione principale.
+
+## 📂 Google Drive — Attestazioni ISEE
+
+I PDF caricati vengono salvati automaticamente in una cartella Google Drive:
+- **Cartella**: `IPF_Attestazioni_ISEE` (creata automaticamente al primo upload)
+- **Naming**: `COGNOME_NOME_CF_DATA.pdf`
+- **Accesso**: I file sono accessibili tramite link diretto
 
 ## 📊 Compatibilità Google Sheet
 
@@ -113,4 +145,14 @@ La riga scritta dal form ha **esattamente la stessa struttura** dell'app OCR:
 N.tessera | Anno | Cognome | Nome | CF | Data Nascita | Luogo | Cell | Comune | Indirizzo | Nucleo | Doc | N.Doc | Scadenza | ISEE Anno | ISEE Importo | Note
 ```
 
-L'ultima colonna (Note) include `[QR_FORM]` per distinguere le registrazioni self-service da quelle OCR.
+L'ultima colonna (Note) include:
+- `[QR_FORM]` — registrazioni self-service
+- `[ISEE_UPDATE DD/MM/YYYY HH:MM]` — aggiornamenti ISEE con timestamp
+
+## 🔄 Migrazione Futura
+
+Il progetto è progettato per una facile migrazione:
+
+- **→ Render**: Converti in Flask app, `validator.js` ha un export Node.js compatibile
+- **→ Server casalingo** (RPi 5 / Mini PC N100): Stessa app Flask, accesso via rete locale o Tailscale
+- **→ Server dedicato** (Jetson Orin): Solo se serve anche AI/ML, overkill per questo use case

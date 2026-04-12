@@ -1,0 +1,221 @@
+/* ============================================================
+   IPF Aggiornamento ISEE — Stili Aggiuntivi
+   ============================================================
+   Estende style.css con CSS specifici per isee.html.
+   Stessi token, stessa palette, componenti aggiuntivi.
+   ============================================================ */
+
+/* ---------- ISEE Logo Accent ---------- */
+.isee-logo {
+    background: linear-gradient(135deg, var(--ipf-green), #4a7a5f) !important;
+}
+
+/* ---------- Info Banner ---------- */
+.isee-info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--ipf-blue-bg);
+    border: 1px solid rgba(125, 164, 168, 0.2);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    animation: fadeIn 0.4s ease;
+}
+
+.isee-info-banner .info-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.isee-info-banner .info-text {
+    font-size: 0.82rem;
+    color: var(--text-body);
+    line-height: 1.55;
+}
+
+.isee-info-banner .info-text strong {
+    color: var(--text-dark);
+}
+
+/* ---------- ISEE Section Highlight ---------- */
+.isee-section-highlight {
+    border-left: 3px solid var(--ipf-green) !important;
+}
+
+/* ---------- Upload Area ---------- */
+.upload-area {
+    position: relative;
+    padding: 28px 20px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-warm-light);
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+    border-color: var(--ipf-orange);
+    background: var(--ipf-orange-bg);
+}
+
+.upload-area.drag-over {
+    transform: scale(1.01);
+}
+
+.upload-icon {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.upload-text {
+    font-size: 0.9rem;
+    color: var(--text-body);
+    margin-bottom: 6px;
+}
+
+.upload-text strong {
+    color: var(--ipf-orange);
+}
+
+.upload-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.file-input-hidden {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* ---------- File Preview ---------- */
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+    border-radius: var(--radius);
+    margin-top: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+.file-preview-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.file-preview-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-preview-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-preview-size {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.file-remove-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-white);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.file-remove-btn:hover {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error-bg);
+}
+
+/* ---------- ISEE Submit Button ---------- */
+.isee-submit-btn {
+    background: linear-gradient(135deg, var(--ipf-green), #4a7a5f) !important;
+}
+
+.isee-submit-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4a7a5f, #3d6b52) !important;
+}
+
+/* ---------- Back Link ---------- */
+.isee-back-link {
+    text-align: center;
+    padding: 8px 16px 16px;
+}
+
+.isee-back-link a {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.isee-back-link a:hover {
+    color: var(--ipf-orange);
+    text-decoration: underline;
+}
+
+/* ---------- Progress Bar (upload) ---------- */
+.upload-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+    display: none;
+}
+
+.upload-progress.active {
+    display: block;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ipf-green), var(--ipf-orange));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* ---------- Error State for Upload ---------- */
+.upload-area.error {
+    border-color: var(--error);
+    background: var(--error-bg);
+}
+
+.upload-area.error .upload-text strong {
+    color: var(--error);
+}

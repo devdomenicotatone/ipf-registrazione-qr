@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Aggiornamento ISEE per i tesserati dell'Istituto per la Famiglia Rimini ODV. Carica la tua attestazione ISEE aggiornata.">
+    <meta name="theme-color" content="#f5f3ef">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>IPF Rimini — Aggiornamento ISEE</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/isee.css">
+</head>
+<body>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Invio in corso...</div>
+</div>
+
+<div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="app-logo-emoji isee-logo">💶</div>
+        <h1 class="app-title">Aggiornamento ISEE</h1>
+        <p class="app-subtitle">Istituto per la Famiglia — Rimini ODV</p>
+        <p class="app-location">Inserisci i dati della tua attestazione ISEE aggiornata</p>
+    </header>
+
+    <!-- Info Banner -->
+    <div class="isee-info-banner">
+        <div class="info-icon">ℹ️</div>
+        <div class="info-text">
+            Questo modulo è riservato ai <strong>tesserati già registrati</strong>. 
+            Inserisci il tuo codice fiscale per aggiornare i dati ISEE nel nostro archivio.
+        </div>
+    </div>
+
+    <!-- Validation Badge -->
+    <div id="validation-badge" class="validation-badge"></div>
+
+    <!-- Form -->
+    <form id="isee-form" autocomplete="on" novalidate>
+
+        <!-- Sezione 1: Identificazione -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">👤</span> Identificazione Tesserato
+            </div>
+
+            <div class="field-group required">
+                <label for="codice_fiscale">Codice Fiscale</label>
+                <input type="text" id="codice_fiscale" name="codice_fiscale" required maxlength="16" minlength="16" autocomplete="off" autocapitalize="characters" placeholder="RSSMRA80A01H294K" aria-describedby="cf-help">
+                <div class="helper-text" id="cf-help">16 caratteri alfanumerici — serve per trovare la tua scheda</div>
+            </div>
+
+            <div class="field-row">
+                <div class="field-group required">
+                    <label for="cognome">Cognome</label>
+                    <input type="text" id="cognome" name="cognome" required autocomplete="family-name" autocapitalize="characters" placeholder="Rossi" style="text-transform: uppercase;">
+                </div>
+                <div class="field-group required">
+                    <label for="nome">Nome</label>
+                    <input type="text" id="nome" name="nome" required autocomplete="given-name" autocapitalize="characters" placeholder="Mario" style="text-transform: uppercase;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione 2: Dati ISEE -->
+        <div class="form-section isee-section-highlight">
+            <div class="section-title">
+                <span class="section-icon">📊</span> Dati ISEE
+            </div>
+
+            <div class="field-row">
+                <div class="field-group required">
+                    <label for="isee_anno">Anno di Riferimento</label>
+                    <input type="text" id="isee_anno" name="isee_anno" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="2025" required>
+                </div>
+                <div class="field-group required">
+                    <label for="isee_importo">Importo ISEE (€)</label>
+                    <input type="text" id="isee_importo" name="isee_importo" inputmode="decimal" placeholder="3.600,00" required>
+                    <div class="helper-text">Valore indicato nell'attestazione</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="protocollo_inps">Numero Protocollo INPS</label>
+                <input type="text" id="protocollo_inps" name="protocollo_inps" placeholder="INPS-ISEE-2025-XXXXXXX-XX" autocomplete="off">
+                <div class="helper-text">Facoltativo — lo trovi sull'attestazione ISEE</div>
+            </div>
+        </div>
+
+        <!-- Sezione 3: Upload PDF -->
+        <div class="form-section">
+            <div class="section-title">
+                <span class="section-icon">📎</span> Attestazione ISEE (PDF)
+            </div>
+
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">
+                    <strong>Tocca per caricare</strong> il PDF dell'attestazione ISEE
+                </div>
+                <div class="upload-hint">Formato PDF — Max 5 MB</div>
+                <input type="file" id="isee_file" name="isee_file" accept=".pdf,application/pdf" class="file-input-hidden">
+            </div>
+
+            <!-- File preview (hidden by default) -->
+            <div id="file-preview" class="file-preview" style="display: none;">
+                <div class="file-preview-icon">✅</div>
+                <div class="file-preview-info">
+                    <div class="file-preview-name" id="file-name"></div>
+                    <div class="file-preview-size" id="file-size"></div>
+                </div>
+                <button type="button" class="file-remove-btn" id="file-remove" title="Rimuovi file">✕</button>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-section">
+            <p class="required-legend"><span class="required-star">*</span> Campi obbligatori</p>
+            <button type="submit" id="submit-btn" class="submit-btn isee-submit-btn">
+                Aggiorna ISEE
+            </button>
+        </div>
+
+    </form>
+
+    <!-- Success Screen -->
+    <div id="success-screen" class="success-screen">
+        <div class="success-icon">✓</div>
+        <div class="success-title">ISEE Aggiornato!</div>
+        <div class="success-name"></div>
+        <div class="success-message">
+            La tua attestazione ISEE è stata inviata con successo e i dati sono stati aggiornati nel nostro archivio.
+        </div>
+        <button class="reset-btn" onclick="resetIseeForm()">Nuovo Aggiornamento</button>
+    </div>
+
+    <!-- Link al form principale -->
+    <div class="isee-back-link">
+        <a href="index.html">← Non sei ancora registrato? Vai al modulo di registrazione</a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p class="footer-org">Istituto per la Famiglia Rimini ODV</p>
+        <p class="footer-address">Via G. Brodolini 10, 47922 Rimini</p>
+        <p>📧 <a href="mailto:info@ipfrimini.org">info@ipfrimini.org</a></p>
+        <p style="margin-top: 8px;">I dati inseriti saranno trattati nel rispetto della normativa sulla privacy.</p>
+    </footer>
+
+</div>
+
+<!-- Scripts -->
+<script src="js/validator.js"></script>
+<script src="js/isee-app.js"></script>
+
+</body>
+</html>
