@@ -203,6 +203,11 @@ function handleIseeUpdate(data) {
     try {
       driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
+      
+      // Salva il link al file nella colonna Note
+      const currentNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
+      const noteWithLink = currentNotes + ' | 📎 ' + driveLink;
+      sheet.getRange(targetRow, 17).setValue(noteWithLink);
     } catch (fileError) {
       Logger.log('Errore salvataggio file: ' + fileError.toString());
       // Non blocchiamo l'aggiornamento per un errore sul file

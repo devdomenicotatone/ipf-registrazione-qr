@@ -166,8 +166,16 @@ function setupFileUpload() {
 
     if (!uploadArea || !fileInput) return;
 
-    // Click to upload
-    uploadArea.addEventListener('click', () => fileInput.click());
+    // Impedisci che il click sull'input bubblizzi all'area (evita doppio trigger)
+    fileInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    // Click to upload — resetta il valore per consentire ri-selezione dello stesso file
+    uploadArea.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
 
     // Drag & Drop
     uploadArea.addEventListener('dragover', (e) => {
@@ -442,6 +450,23 @@ function showIseeSuccessScreen(data) {
 
         const nameEl = success.querySelector('.success-name');
         if (nameEl) nameEl.textContent = `${data.cognome} ${data.nome}`;
+
+        // Mostra info sul file PDF caricato
+        const driveInfo = success.querySelector('.success-drive-info');
+        if (driveInfo) {
+            if (fileBase64 && selectedFile) {
+                driveInfo.innerHTML = `
+                    <div class="drive-info-icon">📁</div>
+                    <div class="drive-info-text">
+                        Il file <strong>${selectedFile.name}</strong> è stato salvato 
+                        nella cartella <strong>IPF_Attestazioni_ISEE</strong> su Google Drive.
+                    </div>
+                `;
+                driveInfo.style.display = 'flex';
+            } else {
+                driveInfo.style.display = 'none';
+            }
+        }
     }
 }
 
