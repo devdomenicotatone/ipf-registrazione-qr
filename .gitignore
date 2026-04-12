@@ -11,3 +11,6 @@ desktop.ini
 
 # Node (futuro)
 node_modules/
+
+# OS
+.backup/
