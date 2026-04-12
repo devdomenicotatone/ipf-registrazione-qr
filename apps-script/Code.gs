@@ -207,8 +207,7 @@ function handleIseeUpdate(data) {
   const existingNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
   const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'HH:mm');
   const datestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'dd/MM/yyyy');
-  const protocollo = data.protocollo_inps ? ' — Prot: ' + data.protocollo_inps : '';
-  const updateNote = 'ISEE Aggiornato alle ' + timestamp + ' del ' + datestamp + protocollo;
+  const updateNote = 'ISEE Aggiornato alle ' + timestamp + ' del ' + datestamp;
   
   const newNotes = existingNotes ? existingNotes + ' | ' + updateNote : updateNote;
   sheet.getRange(targetRow, 17).setValue(newNotes);

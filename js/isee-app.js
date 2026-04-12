@@ -265,7 +265,6 @@ function getIseeFormData() {
         codice_fiscale: document.getElementById('codice_fiscale')?.value?.trim() || '',
         isee_anno: document.getElementById('isee_anno')?.value?.trim() || '',
         isee_importo: document.getElementById('isee_importo')?.value?.trim() || '',
-        protocollo_inps: document.getElementById('protocollo_inps')?.value?.trim() || '',
         source: 'ISEE_UPDATE'
     };
 }
