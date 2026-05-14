@@ -225,7 +225,11 @@ function handleIseeUpdate(data) {
   
   if (data.file_base64 && data.file_base64.length > 100) {
     try {
-      driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
+      // Recupera cognome e nome dalla riga del foglio (colonne C=2, D=3)
+      const rowIndex = targetRow - 1; // allData è 0-indexed
+      const cognome = String(allData[rowIndex][2] || '').trim();
+      const nome = String(allData[rowIndex][3] || '').trim();
+      driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, cognome, nome);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
       
       // Colonna R (18) = URL ISEE: link al file su Drive
