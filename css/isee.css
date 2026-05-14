@@ -252,3 +252,266 @@
 .success-drive-info .drive-info-text strong {
     color: var(--text-dark);
 }
+
+/* ---------- Upload Mode Selector ---------- */
+.upload-mode-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.upload-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-warm-light);
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'Open Sans', sans-serif;
+    color: var(--text-body);
+}
+
+.upload-mode-btn:hover {
+    border-color: var(--ipf-orange-light);
+    background: var(--ipf-orange-bg);
+}
+
+.upload-mode-btn.active {
+    border-color: var(--ipf-orange);
+    background: var(--ipf-orange-bg);
+    color: var(--text-dark);
+    box-shadow: 0 0 0 3px rgba(212, 145, 61, 0.1);
+}
+
+.upload-mode-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.upload-mode-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.upload-mode-hint {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.3;
+}
+
+.upload-mode-btn.active .upload-mode-hint {
+    color: var(--ipf-orange-dark);
+}
+
+/* ---------- Upload Panels ---------- */
+.upload-panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.upload-panel.active {
+    display: block;
+}
+
+/* ---------- Photo Upload Area ---------- */
+.photo-upload-area {
+    position: relative;
+    padding: 22px 16px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-warm-light);
+}
+
+.photo-upload-area:hover {
+    border-color: var(--ipf-orange);
+    background: var(--ipf-orange-bg);
+}
+
+.photo-upload-area .upload-icon {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+}
+
+.photo-upload-area .upload-text {
+    font-size: 0.85rem;
+}
+
+.photo-upload-area .upload-hint {
+    font-size: 0.7rem;
+    margin-top: 4px;
+}
+
+/* ---------- Photo Grid ---------- */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.photo-thumb {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 2px solid var(--border-light);
+    background: var(--bg-section);
+    aspect-ratio: 3 / 4;
+    transition: var(--transition);
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-thumb:hover {
+    border-color: var(--ipf-orange-light);
+    box-shadow: var(--shadow-md);
+}
+
+.photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.photo-thumb-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(61, 52, 41, 0.75);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.photo-thumb-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(192, 57, 43, 0.85);
+    color: #fff;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.photo-thumb:hover .photo-thumb-remove {
+    opacity: 1;
+}
+
+/* On mobile, always show remove button */
+@media (hover: none) {
+    .photo-thumb-remove {
+        opacity: 1;
+    }
+}
+
+.photo-thumb-remove:hover {
+    background: rgba(192, 57, 43, 1);
+    transform: scale(1.1);
+}
+
+/* ---------- Add Photo Button ---------- */
+.add-photo-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    aspect-ratio: 3 / 4;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-warm-light);
+    color: var(--text-muted);
+}
+
+.add-photo-item:hover {
+    border-color: var(--ipf-orange);
+    background: var(--ipf-orange-bg);
+    color: var(--ipf-orange);
+}
+
+.add-photo-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.add-photo-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ---------- Photo Counter ---------- */
+.photo-counter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: var(--bg-section);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.photo-counter-text {
+    font-weight: 600;
+}
+
+.photo-counter-hint {
+    font-size: 0.68rem;
+}
+
+/* ---------- Photo Processing Indicator ---------- */
+.photo-processing {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--ipf-blue-bg);
+    border: 1px solid rgba(125, 164, 168, 0.2);
+    border-radius: var(--radius);
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--text-body);
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-processing.active {
+    display: flex;
+}
+
+.photo-processing-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--ipf-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}

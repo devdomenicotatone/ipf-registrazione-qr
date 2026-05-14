@@ -80,29 +80,73 @@
 
         </div>
 
-        <!-- Sezione 3: Upload PDF -->
+        <!-- Sezione 3: Upload Attestazione -->
         <div class="form-section">
             <div class="section-title">
-                <span class="section-icon">📎</span> Attestazione ISEE (PDF)
+                <span class="section-icon">📎</span> Attestazione ISEE
             </div>
 
-            <div class="upload-area" id="upload-area">
-                <div class="upload-icon">📄</div>
-                <div class="upload-text">
-                    <strong>Tocca per caricare</strong> il PDF dell'attestazione ISEE
-                </div>
-                <div class="upload-hint">Formato PDF — Max 5 MB</div>
-                <input type="file" id="isee_file" name="isee_file" accept=".pdf,application/pdf" class="file-input-hidden">
+            <!-- Selettore Modalità -->
+            <div class="upload-mode-selector">
+                <button type="button" class="upload-mode-btn active" id="mode-pdf" data-mode="pdf">
+                    <span class="upload-mode-icon">📄</span>
+                    <span class="upload-mode-label">Carica PDF</span>
+                    <span class="upload-mode-hint">Se hai il file digitale</span>
+                </button>
+                <button type="button" class="upload-mode-btn" id="mode-photo" data-mode="photo">
+                    <span class="upload-mode-icon">📷</span>
+                    <span class="upload-mode-label">Carica Foto</span>
+                    <span class="upload-mode-hint">Scatta o seleziona foto</span>
+                </button>
             </div>
 
-            <!-- File preview (hidden by default) -->
-            <div id="file-preview" class="file-preview" style="display: none;">
-                <div class="file-preview-icon">✅</div>
-                <div class="file-preview-info">
-                    <div class="file-preview-name" id="file-name"></div>
-                    <div class="file-preview-size" id="file-size"></div>
+            <!-- Pannello PDF (default, come prima) -->
+            <div class="upload-panel active" id="panel-pdf">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">
+                        <strong>Tocca per caricare</strong> il PDF dell'attestazione ISEE
+                    </div>
+                    <div class="upload-hint">Formato PDF — Max 5 MB</div>
+                    <input type="file" id="isee_file" name="isee_file" accept=".pdf,application/pdf" class="file-input-hidden">
                 </div>
-                <button type="button" class="file-remove-btn" id="file-remove" title="Rimuovi file">✕</button>
+
+                <!-- File preview PDF (hidden by default) -->
+                <div id="file-preview" class="file-preview" style="display: none;">
+                    <div class="file-preview-icon">✅</div>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name" id="file-name"></div>
+                        <div class="file-preview-size" id="file-size"></div>
+                    </div>
+                    <button type="button" class="file-remove-btn" id="file-remove" title="Rimuovi file">✕</button>
+                </div>
+            </div>
+
+            <!-- Pannello Foto -->
+            <div class="upload-panel" id="panel-photo">
+                <div class="photo-upload-area" id="photo-upload-area">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">
+                        <strong>Tocca per scattare</strong> o selezionare foto
+                    </div>
+                    <div class="upload-hint">JPG, PNG — Max 5 MB per foto — Max 10 pagine</div>
+                    <input type="file" id="photo_file" accept="image/*" capture="environment" multiple class="file-input-hidden">
+                </div>
+
+                <!-- Griglia miniature foto -->
+                <div class="photo-grid" id="photo-grid" style="display: none;"></div>
+
+                <!-- Contatore pagine -->
+                <div class="photo-counter" id="photo-counter" style="display: none;">
+                    <span class="photo-counter-text" id="photo-counter-text">0/10 pagine</span>
+                    <span class="photo-counter-hint">Le foto verranno unite in un unico PDF</span>
+                </div>
+
+                <!-- Indicatore elaborazione -->
+                <div class="photo-processing" id="photo-processing">
+                    <div class="photo-processing-spinner"></div>
+                    <span>Creazione PDF dalle foto in corso...</span>
+                </div>
             </div>
         </div>
 
@@ -144,6 +188,7 @@
 </div>
 
 <!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script src="js/validator.js"></script>
 <script src="js/isee-app.js"></script>
 
