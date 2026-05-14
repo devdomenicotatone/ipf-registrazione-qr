@@ -130,7 +130,7 @@ function handleRegistration(data) {
   if (data.file_base64 && data.file_base64.length > 100) {
     try {
       const cf = (data.codice_fiscale || '').toUpperCase().trim();
-      driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, data.cognome, data.nome);
+      driveLink = saveIseeFile(data.file_base64, cf, data.cognome, data.nome, data.isee_anno);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
       
       // Colonna R (18) = URL ISEE
@@ -229,7 +229,7 @@ function handleIseeUpdate(data) {
       const rowIndex = targetRow - 1; // allData è 0-indexed
       const cognome = String(allData[rowIndex][2] || '').trim();
       const nome = String(allData[rowIndex][3] || '').trim();
-      driveLink = saveIseeFile(data.file_base64, data.file_name || 'attestazione_isee.pdf', cf, cognome, nome);
+      driveLink = saveIseeFile(data.file_base64, cf, cognome, nome, data.isee_anno);
       Logger.log('File ISEE salvato su Drive: ' + driveLink);
       
       // Colonna R (18) = URL ISEE: link al file su Drive
@@ -252,34 +252,56 @@ function handleIseeUpdate(data) {
 
 /**
  * Salva il file PDF dell'attestazione ISEE su Google Drive.
- * Crea una cartella dedicata se non esiste.
- * Naming: COGNOME_NOME_CF_ISEE_ANNO.pdf
+ * 
+ * Struttura cartelle:
+ *   IPF_Attestazioni_ISEE/
+ *   ├── COGNOME_NOME_CF/
+ *   │   ├── ISEE_2025_20260412.pdf
+ *   │   └── ISEE_2026_20260514.pdf
+ *   └── ...
+ *
+ * Crea automaticamente la cartella radice e la sottocartella utente se non esistono.
  */
-function saveIseeFile(base64Data, originalName, cf, cognome, nome) {
-  // Trova o crea la cartella
-  const folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
-  let folder;
-  if (folders.hasNext()) {
-    folder = folders.next();
+function saveIseeFile(base64Data, cf, cognome, nome, iseeAnno) {
+  // 1. Trova o crea la cartella radice
+  const rootFolders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  let rootFolder;
+  if (rootFolders.hasNext()) {
+    rootFolder = rootFolders.next();
   } else {
-    folder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
-    Logger.log('Cartella creata su Drive: ' + DRIVE_FOLDER_NAME);
+    rootFolder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
+    Logger.log('Cartella radice creata: ' + DRIVE_FOLDER_NAME);
   }
 
-  // Genera nome file univoco
-  const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'yyyyMMdd_HHmm');
-  const safeCognome = (cognome || 'SCONOSCIUTO').replace(/[^A-Za-z]/g, '');
-  const safeNome = (nome || '').replace(/[^A-Za-z]/g, '');
-  const fileName = safeCognome + '_' + safeNome + '_' + cf + '_' + timestamp + '.pdf';
+  // 2. Genera nome sottocartella utente: COGNOME_NOME_CF
+  const safeCognome = (cognome || 'SCONOSCIUTO').toUpperCase().replace(/[^A-Z]/g, '');
+  const safeNome = (nome || '').toUpperCase().replace(/[^A-Z]/g, '');
+  const userFolderName = safeCognome + '_' + safeNome + '_' + cf;
 
-  // Decodifica Base64 e crea il file
+  // 3. Trova o crea la sottocartella utente
+  let userFolder;
+  const existingFolders = rootFolder.getFoldersByName(userFolderName);
+  if (existingFolders.hasNext()) {
+    userFolder = existingFolders.next();
+  } else {
+    userFolder = rootFolder.createFolder(userFolderName);
+    Logger.log('Cartella utente creata: ' + userFolderName);
+  }
+
+  // 4. Genera nome file: ISEE_ANNO_DATA.pdf
+  const datestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'yyyyMMdd');
+  const anno = iseeAnno || 'ND';
+  const fileName = 'ISEE_' + anno + '_' + datestamp + '.pdf';
+
+  // 5. Decodifica Base64 e salva il file nella cartella utente
   const decoded = Utilities.base64Decode(base64Data);
   const blob = Utilities.newBlob(decoded, 'application/pdf', fileName);
-  const file = folder.createFile(blob);
+  const file = userFolder.createFile(blob);
 
-  // Rendi il file accessibile via link (opzionale)
+  // 6. Rendi accessibile via link
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
+  Logger.log('File salvato: ' + userFolderName + '/' + fileName);
   return file.getUrl();
 }
 
