@@ -306,9 +306,62 @@ function saveIseeFile(base64Data, cf, cognome, nome, iseeAnno) {
 }
 
 /**
- * Gestisce le richieste GET (per test).
+ * Gestisce le richieste GET.
+ * Supporta:
+ *   ?action=lookup&n_tessera=123  → cerca tesserato per numero tessera
+ *   ?debug=1                      → diagnostica
  */
 function doGet(e) {
+  // --- Lookup tesserato per numero tessera ---
+  if (e && e.parameter && e.parameter.action === 'lookup') {
+    try {
+      const nTessera = String(e.parameter.n_tessera || '').trim();
+      if (!nTessera) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: 'Numero tessera non fornito.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: 'Foglio non trovato.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const allData = sheet.getDataRange().getValues();
+      // Colonna A (indice 0) = N. Tessera
+      for (let i = 1; i < allData.length; i++) {
+        const rowTessera = String(allData[i][0] || '').trim();
+        if (rowTessera === nTessera) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'ok',
+            data: {
+              n_tessera: rowTessera,
+              cognome: String(allData[i][2] || '').trim(),   // Colonna C
+              nome: String(allData[i][3] || '').trim(),      // Colonna D
+              codice_fiscale: String(allData[i][4] || '').trim() // Colonna E
+            }
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'Tessera n. ' + nTessera + ' non trovata nell\'archivio.'
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // Modalità diagnostica: ?debug=1
   if (e && e.parameter && e.parameter.debug === '1') {
     try {

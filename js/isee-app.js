@@ -21,6 +21,7 @@ let selectedFile = null;
 let fileBase64 = null;
 let uploadMode = 'pdf'; // 'pdf' | 'photo'
 let photoFiles = []; // Array di { file, dataUrl }
+let lookupData = null; // Dati tesserato trovato dal lookup
 
 // ============================================================
 // INIZIALIZZAZIONE
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         annoField.value = new Date().getFullYear();
     }
 
+    setupLookup();
     setupIseeValidation();
     setupFileUpload();
     setupModeSelector();
@@ -38,6 +40,116 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('isee-form').addEventListener('submit', handleIseeSubmit);
     console.log('✅ ISEE App inizializzata');
 });
+
+// ============================================================
+// LOOKUP TESSERATO
+// ============================================================
+function setupLookup() {
+    const lookupBtn = document.getElementById('lookup-btn');
+    const tesseraInput = document.getElementById('n_tessera');
+    const changeBtn = document.getElementById('lookup-change-btn');
+
+    if (lookupBtn) {
+        lookupBtn.addEventListener('click', () => lookupTesserato());
+    }
+
+    // Cerca anche premendo Enter nel campo
+    if (tesseraInput) {
+        tesseraInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lookupTesserato();
+            }
+        });
+    }
+
+    // Pulsante "Cambia tesserato"
+    if (changeBtn) {
+        changeBtn.addEventListener('click', () => resetLookup());
+    }
+}
+
+async function lookupTesserato() {
+    const tesseraInput = document.getElementById('n_tessera');
+    const nTessera = tesseraInput?.value?.trim();
+
+    if (!nTessera) {
+        showToast('⚠️ Inserisci un numero tessera', 'error');
+        tesseraInput?.focus();
+        return;
+    }
+
+    const lookupBtn = document.getElementById('lookup-btn');
+    const loading = document.getElementById('lookup-loading');
+    const result = document.getElementById('lookup-result');
+
+    // UI: loading
+    if (lookupBtn) lookupBtn.disabled = true;
+    if (loading) loading.style.display = 'flex';
+    if (result) result.style.display = 'none';
+
+    try {
+        const url = APPS_SCRIPT_URL + '?action=lookup&n_tessera=' + encodeURIComponent(nTessera);
+        const response = await fetch(url);
+        const json = await response.json();
+
+        if (json.status === 'error') {
+            showToast('❌ ' + json.message, 'error');
+            return;
+        }
+
+        // Successo: mostra i dati
+        lookupData = json.data;
+
+        document.getElementById('lookup-cognome').textContent = lookupData.cognome;
+        document.getElementById('lookup-nome').textContent = lookupData.nome;
+        document.getElementById('lookup-cf').textContent = lookupData.codice_fiscale;
+        document.getElementById('codice_fiscale').value = lookupData.codice_fiscale;
+
+        // Nascondi input, mostra card risultato
+        const inputRow = document.querySelector('.lookup-input-row');
+        const helperText = inputRow?.closest('.field-group')?.querySelector('.helper-text');
+        if (inputRow) inputRow.style.display = 'none';
+        if (helperText) helperText.style.display = 'none';
+        if (result) result.style.display = 'block';
+
+        // Mostra sezioni ISEE
+        const sections = document.getElementById('isee-sections');
+        if (sections) sections.style.display = 'block';
+
+        showToast(`✅ Tesserato trovato: ${lookupData.cognome} ${lookupData.nome}`, 'success');
+        console.log('🔍 Lookup OK:', lookupData);
+
+    } catch (err) {
+        console.error('Errore lookup:', err);
+        showToast('❌ Errore di connessione. Riprova.', 'error');
+    } finally {
+        if (lookupBtn) lookupBtn.disabled = false;
+        if (loading) loading.style.display = 'none';
+    }
+}
+
+function resetLookup() {
+    lookupData = null;
+
+    // Resetta UI
+    const inputRow = document.querySelector('.lookup-input-row');
+    const helperText = inputRow?.closest('.field-group')?.querySelector('.helper-text');
+    const result = document.getElementById('lookup-result');
+    const sections = document.getElementById('isee-sections');
+    const tesseraInput = document.getElementById('n_tessera');
+
+    if (inputRow) inputRow.style.display = 'flex';
+    if (helperText) helperText.style.display = '';
+    if (result) result.style.display = 'none';
+    if (sections) sections.style.display = 'none';
+    if (tesseraInput) {
+        tesseraInput.value = '';
+        tesseraInput.focus();
+    }
+
+    document.getElementById('codice_fiscale').value = '';
+}
 
 // ============================================================
 // MODE SELECTOR
@@ -73,15 +185,7 @@ function setupModeSelector() {
 // VALIDAZIONE REAL-TIME
 // ============================================================
 function setupIseeValidation() {
-    const cfEl = document.getElementById('codice_fiscale');
-    if (cfEl) {
-        cfEl.addEventListener('input', () => {
-            const pos = cfEl.selectionStart;
-            cfEl.value = cfEl.value.toUpperCase().replace(/\s/g, '');
-            cfEl.setSelectionRange(pos, pos);
-        });
-        cfEl.addEventListener('blur', () => validateCfField());
-    }
+    // CF ora è un campo hidden popolato dal lookup
 
     const importoEl = document.getElementById('isee_importo');
     if (importoEl) {
@@ -514,16 +618,17 @@ async function handleIseeSubmit(e) {
     let data = getIseeFormData();
     data = normalizeIseeData(data);
 
-    const required = ['codice_fiscale', 'isee_anno', 'isee_importo'];
-    const missing = required.filter(f => !data[f]);
-    if (missing.length > 0) {
-        showToast('⚠️ Compila tutti i campi obbligatori', 'error');
+    // Verifica che il lookup sia stato completato
+    if (!lookupData) {
+        showToast('⚠️ Cerca prima il tesserato con il numero tessera', 'error');
         isSubmitting = false;
         return;
     }
 
-    if (data.codice_fiscale.length !== 16) {
-        showToast('❌ Il Codice Fiscale deve essere di 16 caratteri', 'error');
+    const required = ['codice_fiscale', 'isee_anno', 'isee_importo'];
+    const missing = required.filter(f => !data[f]);
+    if (missing.length > 0) {
+        showToast('⚠️ Compila tutti i campi obbligatori', 'error');
         isSubmitting = false;
         return;
     }
@@ -651,7 +756,11 @@ function showIseeSuccessScreen(data) {
         success.style.display = 'flex';
 
         const nameEl = success.querySelector('.success-name');
-        if (nameEl) nameEl.textContent = `CF: ${data.codice_fiscale}`;
+        if (nameEl && lookupData) {
+            nameEl.textContent = `${lookupData.cognome} ${lookupData.nome}`;
+        } else if (nameEl) {
+            nameEl.textContent = `CF: ${data.codice_fiscale}`;
+        }
 
         const driveInfo = success.querySelector('.success-drive-info');
         if (driveInfo) driveInfo.style.display = 'none';
@@ -669,6 +778,9 @@ function resetIseeForm() {
 
         const annoField = document.getElementById('isee_anno');
         if (annoField) annoField.value = new Date().getFullYear();
+
+        // Reset lookup
+        resetLookup();
 
         // Reset entrambe le modalità
         removeFile();

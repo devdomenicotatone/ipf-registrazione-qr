@@ -37,7 +37,7 @@
         <div class="info-icon">ℹ️</div>
         <div class="info-text">
             Questo modulo è riservato ai <strong>tesserati già registrati</strong>. 
-            Inserisci il tuo codice fiscale per aggiornare i dati ISEE nel nostro archivio.
+            Inserisci il tuo <strong>numero tessera</strong> per caricare i tuoi dati e aggiornare l'ISEE.
         </div>
     </div>
 
@@ -47,18 +47,56 @@
     <!-- Form -->
     <form id="isee-form" autocomplete="on" novalidate>
 
-        <!-- Sezione 1: Identificazione -->
+        <!-- Sezione 1: Ricerca Tesserato -->
         <div class="form-section">
             <div class="section-title">
-                <span class="section-icon">👤</span> Identificazione Tesserato
+                <span class="section-icon">🔍</span> Cerca Tesserato
             </div>
 
             <div class="field-group required">
-                <label for="codice_fiscale">Codice Fiscale</label>
-                <input type="text" id="codice_fiscale" name="codice_fiscale" required maxlength="16" minlength="16" autocomplete="off" autocapitalize="characters" placeholder="RSSMRA80A01H294K" aria-describedby="cf-help">
-                <div class="helper-text" id="cf-help">16 caratteri alfanumerici — serve per trovare la tua scheda</div>
+                <label for="n_tessera">Numero Tessera</label>
+                <div class="lookup-input-row">
+                    <input type="text" id="n_tessera" name="n_tessera" inputmode="numeric" placeholder="Es. 123" required autocomplete="off">
+                    <button type="button" id="lookup-btn" class="lookup-btn">Cerca</button>
+                </div>
+                <div class="helper-text">Inserisci il numero e premi "Cerca"</div>
             </div>
+
+            <!-- Spinner ricerca -->
+            <div class="lookup-loading" id="lookup-loading" style="display: none;">
+                <div class="photo-processing-spinner"></div>
+                <span>Ricerca in corso...</span>
+            </div>
+
+            <!-- Card dati trovati (nascosta) -->
+            <div class="lookup-result" id="lookup-result" style="display: none;">
+                <div class="lookup-result-header">
+                    <span class="lookup-result-icon">✅</span>
+                    <span class="lookup-result-title">Tesserato trovato</span>
+                </div>
+                <div class="lookup-result-fields">
+                    <div class="lookup-field">
+                        <span class="lookup-field-label">Cognome</span>
+                        <span class="lookup-field-value" id="lookup-cognome">—</span>
+                    </div>
+                    <div class="lookup-field">
+                        <span class="lookup-field-label">Nome</span>
+                        <span class="lookup-field-value" id="lookup-nome">—</span>
+                    </div>
+                    <div class="lookup-field">
+                        <span class="lookup-field-label">Codice Fiscale</span>
+                        <span class="lookup-field-value lookup-field-cf" id="lookup-cf">—</span>
+                    </div>
+                </div>
+                <button type="button" class="lookup-change-btn" id="lookup-change-btn">Cambia tesserato</button>
+            </div>
+
+            <!-- Input nascosto per il CF (usato dal submit) -->
+            <input type="hidden" id="codice_fiscale" name="codice_fiscale">
         </div>
+
+        <!-- Sezioni visibili solo dopo il lookup -->
+        <div id="isee-sections" style="display: none;">
 
         <!-- Sezione 2: Dati ISEE -->
         <div class="form-section isee-section-highlight">
@@ -149,6 +187,8 @@
                 </div>
             </div>
         </div>
+
+        </div><!-- /isee-sections -->
 
         <!-- Submit -->
         <div class="submit-section">
