@@ -219,6 +219,27 @@ function setupIseeValidation() {
             }
         });
     }
+
+    const nucleoEl = document.getElementById('nucleo_familiare');
+    if (nucleoEl) {
+        nucleoEl.addEventListener('blur', () => {
+            const val = nucleoEl.value.trim();
+            if (val) {
+                const num = parseInt(val);
+                if (isNaN(num) || num < 1 || num > 20) {
+                    showFieldValidation('nucleo_familiare', {
+                        status: 'error',
+                        detail: 'Inserisci un numero tra 1 e 20'
+                    });
+                } else {
+                    showFieldValidation('nucleo_familiare', {
+                        status: 'ok',
+                        detail: `${num} componenti ✓`
+                    });
+                }
+            }
+        });
+    }
 }
 
 function validateCfField() {
@@ -582,6 +603,7 @@ function getIseeFormData() {
         codice_fiscale: document.getElementById('codice_fiscale')?.value?.trim() || '',
         isee_anno: document.getElementById('isee_anno')?.value?.trim() || '',
         isee_importo: document.getElementById('isee_importo')?.value?.trim() || '',
+        nucleo_familiare: document.getElementById('nucleo_familiare')?.value?.trim() || '',
         source: 'ISEE_UPDATE'
     };
 }
@@ -625,7 +647,7 @@ async function handleIseeSubmit(e) {
         return;
     }
 
-    const required = ['codice_fiscale', 'isee_anno', 'isee_importo'];
+    const required = ['codice_fiscale', 'isee_anno', 'isee_importo', 'nucleo_familiare'];
     const missing = required.filter(f => !data[f]);
     if (missing.length > 0) {
         showToast('⚠️ Compila tutti i campi obbligatori', 'error');

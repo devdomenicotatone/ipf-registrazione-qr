@@ -210,6 +210,14 @@ function handleIseeUpdate(data) {
     }
   }
 
+  // Aggiorna colonna K (11) = Nucleo Familiare
+  if (data.nucleo_familiare) {
+    const nucleoNum = parseInt(data.nucleo_familiare);
+    if (!isNaN(nucleoNum) && nucleoNum > 0) {
+      sheet.getRange(targetRow, 11).setValue(nucleoNum);
+    }
+  }
+
   // Colonna Q (17) = Note: data/ora aggiornamento
   const existingNotes = String(sheet.getRange(targetRow, 17).getValue() || '');
   const timestamp = Utilities.formatDate(new Date(), 'Europe/Rome', 'HH:mm');
